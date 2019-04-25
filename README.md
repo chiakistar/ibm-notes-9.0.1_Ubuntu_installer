@@ -1,6 +1,8 @@
 # Custom IBM Notes 9.0.1 patcher and installer for Ubuntu systems
 
 A simple patcher script that fixes broken dependencies required by the IBM Notes Debian package.
+Patch the ibm-sametime package too.
+
 
 ## Overview
 
@@ -9,10 +11,12 @@ Unfortunately Ubuntu has a tendency to deprecate a variety of packages with each
 Fortunately enough it is possible to get IBM Notes running after a slight modification to the deb package.
 
 As nobody likes to manually patch the packages dependency list, I have decided to write a small script that applies the necessary patches to the package, and then installs it.
+Also seems be important to install the sametime-package after localization packages (e.g. ibm-notes-core-de* ibm-notes-nl1*) to work ?
 
 ## Usage
 
 Installing IBM Notes 9.0.1 using the script is fairly simple
+
 
 #### Requirements
 
