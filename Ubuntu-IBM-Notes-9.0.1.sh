@@ -15,6 +15,7 @@
 # limitations under the License.
 
 # Custom IBM Notes 9.0.1 patcher and installer for Ubuntu 16.04+ systems
+# Added patch for ibm-sametime Package to use iproute2 instead iproute
 
 # Information on usage and execution is available in the README that comes with this file
 # This installation script comes WITHOUT any IBM software and must be installed by the user himself
@@ -39,7 +40,7 @@ function usage() {
 	echo "Options:"
 	echo
 	echo -e "-h --help\tDisplay usage (this)"
-	echo -e "package\t\tPath to the IBM Notes Debian package"
+	echo -e "package\t\tPath to the IBM Notes or IBM notes sametime Debian package"
 	echo
 }
 
@@ -57,16 +58,44 @@ if [[ "$1" == "-h" || "$1" == "--help" ]]; then
 	exit 1
 fi
 
-if [ -z "$(dpkg-deb -I "$1" | grep -oP "Package: ibm-notes")" ]; then
-	echo "The provided package does not appear to be a IBM notes installation package!"
-	exit -1
-fi
-
+tmp_install_directory="$(mktemp -d)"
 # Check script is being executed with root rights
 if [ "$EUID" -ne 0 ]
   then echo "Please run as root"
   exit
 fi
+
+
+if [ "$(dpkg-deb -I "$1" | grep -oP "Package: ibm-sametime")" ]; then
+	echo "Patching ibm sametime package"
+	# Give user time to read echo
+sleep 5
+
+dpkg -X $1 "$tmp_install_directory"/deb
+dpkg -e $1 "$tmp_install_directory"/deb/DEBIAN
+sed -i 's/iproute/iproute2/g' "$tmp_install_directory"/deb/DEBIAN/control
+
+dpkg -b "$tmp_install_directory"/deb patched_$1
+
+echo "Done patching"
+
+rm -rf "$tmp_install_directory"
+
+echo "Installing IBM notes sametime 9.0.1"
+
+# Give user time to read echo
+sleep 5
+
+gdebi patched_$1
+
+	exit 0
+fi
+
+if [ -z "$(dpkg-deb -I "$1" | grep -oP "Package: ibm-notes")" ]; then
+	echo "The provided package does not appear to be a IBM notes installation package!"
+	exit -1
+fi
+
 
 echo "Installing necessary packages before installation"
 
@@ -76,7 +105,6 @@ set +f
 
 echo "Getting necessary unsupported/unofficial dependencies"
 
-tmp_install_directory="$(mktemp -d)"
 
 if ! apt-get -qq install libgnome-desktop-2-17; then
 	wget http://security.ubuntu.com/ubuntu/pool/universe/g/gnome-desktop/libgnome-desktop-2-17_2.32.1-2ubuntu1_amd64.deb -P "$tmp_install_directory"/
@@ -118,7 +146,7 @@ sed -i 's/ libgnome-desktop-2 | libgnome-desktop-2-7 | libgnome-desktop-2-11 | l
 sed -i 's/ libxp6,//g' "$tmp_install_directory"/deb/DEBIAN/control
 sed -i 's/libpng12-0/libpng16-16/g' "$tmp_install_directory"/deb/DEBIAN/control
 
-dpkg -b "$tmp_install_directory"/deb $1
+dpkg -b "$tmp_install_directory"/deb patched_$1
 
 echo "Done patching"
 
@@ -129,7 +157,7 @@ echo "Installing IBM notes 9.0.1"
 # Give user time to read echo
 sleep 5
 
-gdebi $1
+gdebi patched_$1
 
 cd ../
 
